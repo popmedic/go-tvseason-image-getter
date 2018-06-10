@@ -73,13 +73,21 @@ func main() {
 		log.Fatal(func(int) { os.Exit(3) }, err)
 	}
 
+	var bestResult = 0
 	if len(showQuery.Results) <= 0 {
 		log.Fatalf(func(int) { os.Exit(3) }, "no show results matching %q", *showName)
+	} else {
+		for i, res := range showQuery.Results {
+			if strings.ToLower(strings.TrimSpace(res.Name)) == strings.ToLower(strings.TrimSpace(*showName)) {
+				bestResult = i
+				break
+			}
+		}
 	}
 
 	if len(*out) == 0 {
 		if isShow() {
-			*out = fmt.Sprintf("%s-SD.jpg", showQuery.Results[0].Name)
+			*out = fmt.Sprintf("%s-SD.jpg", showQuery.Results[bestResult].Name)
 		} else {
 			*out = fmt.Sprintf("Season %d-SD.jpg", *seasonNumber)
 		}
@@ -87,9 +95,9 @@ func main() {
 
 	var url string
 	if isShow() {
-		url = cfg.Images.SecureBaseUrl + "original" + showQuery.Results[0].PosterPath
+		url = cfg.Images.SecureBaseUrl + "original" + showQuery.Results[bestResult].PosterPath
 	} else {
-		showID := showQuery.Results[0].ID
+		showID := showQuery.Results[bestResult].ID
 
 		log.Info("show id = ", showID)
 
