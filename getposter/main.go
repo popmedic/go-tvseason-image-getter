@@ -55,7 +55,7 @@ func main() {
 	}
 
 	if isShow() {
-		log.Infof("%q show only.")
+		log.Infof("%q show only.", *showName)
 	} else {
 		log.Infof("%q : Season %d", *showName, *seasonNumber)
 	}
