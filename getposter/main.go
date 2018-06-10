@@ -18,6 +18,7 @@ import (
 	"github.com/nfnt/resize"
 	"github.com/popmedic/go-logger/log"
 	"github.com/popmedic/go-tvseason-image-getter/tmdb"
+	"github.com/xrash/smetrics"
 )
 
 var showName = flag.String("show", "", "the show name ** required **")
@@ -74,13 +75,17 @@ func main() {
 	}
 
 	var bestResult = 0
+	var bestJaroDist float64
 	if len(showQuery.Results) <= 0 {
 		log.Fatalf(func(int) { os.Exit(3) }, "no show results matching %q", *showName)
 	} else {
+		normShowName := strings.TrimPrefix(strings.ToLower(strings.TrimSpace(*showName)), "the ")
 		for i, res := range showQuery.Results {
-			if strings.ToLower(strings.TrimSpace(res.Name)) == strings.ToLower(strings.TrimSpace(*showName)) {
+			jaroDist := smetrics.JaroWinkler(normShowName,
+				strings.TrimPrefix(strings.ToLower(strings.TrimSpace(res.Name)), "the "), 0.7, 4)
+			if jaroDist > bestJaroDist {
+				bestJaroDist = jaroDist
 				bestResult = i
-				break
 			}
 		}
 	}
@@ -95,6 +100,10 @@ func main() {
 
 	var url string
 	if isShow() {
+		if len(showQuery.Results[bestResult].PosterPath) == 0 {
+			log.Fatal(func(int) { os.Exit(5) },
+				fmt.Sprintf("%q (%d) does not have a poster", showQuery.Results[bestResult].Name, bestResult))
+		}
 		url = cfg.Images.SecureBaseUrl + "original" + showQuery.Results[bestResult].PosterPath
 	} else {
 		showID := showQuery.Results[bestResult].ID
