@@ -2,7 +2,6 @@ package tmdb
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/url"
 
@@ -11,7 +10,7 @@ import (
 
 const queryURLFmt = "https://api.themoviedb.org/3/search/tv?api_key=ae802ff2638e8a186add7079dda29e03&language=en-US&query=%s&page=1"
 
-type Show struct {
+type ShowQuery struct {
 	Page    int `json:"page,omitempty"`
 	Results []struct {
 		PosterPath       string   `json:"poster_path,omitempty"`
@@ -32,15 +31,15 @@ type Show struct {
 	TotalPages   int `json:"total_pages,omitempty"`
 }
 
-func NewShow(data []byte) (*Show, error) {
-	show := Show{}
+func NewShowQuery(data []byte) (*ShowQuery, error) {
+	show := ShowQuery{}
 	if err := json.Unmarshal(data, &show); err != nil {
 		return nil, err
 	}
 	return &show, nil
 }
 
-func (s *Show) String() string {
+func (s *ShowQuery) String() string {
 	res, err := json.MarshalIndent(s, "", "  ")
 	if err != nil {
 		return err.Error()
@@ -48,23 +47,12 @@ func (s *Show) String() string {
 	return string(res)
 }
 
-func GetShow(showName string, getter HttpGetter) (*Show, error) {
+func QueryShows(showName string, getter HttpGetter) (*ShowQuery, error) {
 	url := fmt.Sprintf(queryURLFmt, url.QueryEscape(showName))
 	log.Infof("show query url = %q", url)
 	body, err := getBody(url, getter)
 	if err != nil {
 		return nil, err
 	}
-	return NewShow(body)
-}
-
-func GetShowID(showName string, getter HttpGetter) (int, error) {
-	show, err := GetShow(showName, getter)
-	if err != nil {
-		return -1, err
-	}
-	if len(show.Results) <= 0 {
-		return -1, errors.New("no results")
-	}
-	return show.Results[0].ID, nil
+	return NewShowQuery(body)
 }

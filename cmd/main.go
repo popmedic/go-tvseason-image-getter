@@ -67,19 +67,19 @@ func main() {
 
 	log.Infof("image base_url = %q", cfg.Images.SecureBaseUrl)
 
-	show, err := tmdb.GetShow(*showName, tmdb.HttpGetter(http.Get))
+	showQuery, err := tmdb.QueryShows(*showName, tmdb.HttpGetter(http.Get))
 	if err != nil {
 		flag.Usage()
 		log.Fatal(func(int) { os.Exit(3) }, err)
 	}
 
-	if len(show.Results) <= 0 {
+	if len(showQuery.Results) <= 0 {
 		log.Fatalf(func(int) { os.Exit(3) }, "no show results matching %q", *showName)
 	}
 
 	if len(*out) == 0 {
 		if isShow() {
-			*out = fmt.Sprintf("%s-SD.jpg", show.Results[0].Name)
+			*out = fmt.Sprintf("%s-SD.jpg", showQuery.Results[0].Name)
 		} else {
 			*out = fmt.Sprintf("Season %d-SD.jpg", *seasonNumber)
 		}
@@ -87,9 +87,9 @@ func main() {
 
 	var url string
 	if isShow() {
-		url = cfg.Images.SecureBaseUrl + "original" + show.Results[0].PosterPath
+		url = cfg.Images.SecureBaseUrl + "original" + showQuery.Results[0].PosterPath
 	} else {
-		showID := show.Results[0].ID
+		showID := showQuery.Results[0].ID
 
 		log.Info("show id = ", showID)
 
