@@ -3,8 +3,6 @@ package tmdb
 import (
 	"encoding/json"
 	"fmt"
-
-	"github.com/popmedic/go-logger/log"
 )
 
 const seasonURLFmt = "https://api.themoviedb.org/3/tv/%d/season/%d?api_key=ae802ff2638e8a186add7079dda29e03&language=en-US"
@@ -57,7 +55,6 @@ func NewSeason(data []byte) (*Season, error) {
 
 func GetSeason(showID, seasonNumber int, getter HttpGetter) (*Season, error) {
 	url := fmt.Sprintf(seasonURLFmt, showID, seasonNumber)
-	log.Infof("season url = %q", url)
 	body, err := getBody(url, getter)
 	if err != nil {
 		return nil, err

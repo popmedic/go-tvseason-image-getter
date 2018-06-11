@@ -5,7 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"image"
+	img "image"
 	"image/jpeg"
 	"image/png"
 	"io"
@@ -18,7 +18,6 @@ import (
 	"github.com/nfnt/resize"
 	"github.com/popmedic/go-logger/log"
 	"github.com/popmedic/go-tvseason-image-getter/tmdb"
-	"github.com/xrash/smetrics"
 )
 
 var showName = flag.String("show", "", "the show name ** required **")
@@ -55,9 +54,9 @@ func main() {
 	}
 
 	if isShow() {
-		log.Infof("%q show only.", *showName)
+		log.Infof("get poster for show: %q", *showName)
 	} else {
-		log.Infof("%q : Season %d", *showName, *seasonNumber)
+		log.Infof("get poster for show: %q season %d", *showName, *seasonNumber)
 	}
 
 	cfg, err := tmdb.GetConfig(tmdb.HttpGetter(http.Get))
@@ -66,33 +65,21 @@ func main() {
 		log.Fatal(func(int) { os.Exit(2) }, err)
 	}
 
-	log.Infof("image base_url = %q", cfg.Images.SecureBaseUrl)
-
 	showQuery, err := tmdb.QueryShows(*showName, tmdb.HttpGetter(http.Get))
 	if err != nil {
 		flag.Usage()
 		log.Fatal(func(int) { os.Exit(3) }, err)
 	}
 
-	var bestResult = 0
-	var bestJaroDist float64
 	if len(showQuery.Results) <= 0 {
 		log.Fatalf(func(int) { os.Exit(3) }, "no show results matching %q", *showName)
-	} else {
-		normShowName := strings.TrimPrefix(strings.ToLower(strings.TrimSpace(*showName)), "the ")
-		for i, res := range showQuery.Results {
-			jaroDist := smetrics.JaroWinkler(normShowName,
-				strings.TrimPrefix(strings.ToLower(strings.TrimSpace(res.Name)), "the "), 0.7, 4)
-			if jaroDist > bestJaroDist {
-				bestJaroDist = jaroDist
-				bestResult = i
-			}
-		}
 	}
+
+	showResult := showQuery.GetClosestResult(*showName)
 
 	if len(*out) == 0 {
 		if isShow() {
-			*out = fmt.Sprintf("%s-SD.jpg", showQuery.Results[bestResult].Name)
+			*out = fmt.Sprintf("%s-SD.jpg", showResult.Name)
 		} else {
 			*out = fmt.Sprintf("Season %d-SD.jpg", *seasonNumber)
 		}
@@ -100,28 +87,23 @@ func main() {
 
 	var url string
 	if isShow() {
-		if len(showQuery.Results[bestResult].PosterPath) == 0 {
-			log.Fatal(func(int) { os.Exit(5) },
-				fmt.Sprintf("%q (%d) does not have a poster", showQuery.Results[bestResult].Name, bestResult))
+		if len(showResult.PosterPath) == 0 {
+			log.Fatal(func(int) { os.Exit(5) }, fmt.Sprintf("%q does not have a poster", showResult.Name))
 		}
-		url = cfg.Images.SecureBaseUrl + "original" + showQuery.Results[bestResult].PosterPath
+		url = cfg.Images.SecureBaseUrl + "original" + showResult.PosterPath
 	} else {
-		showID := showQuery.Results[bestResult].ID
-
-		log.Info("show id = ", showID)
-
-		season, err := tmdb.GetSeason(showID, *seasonNumber, tmdb.HttpGetter(http.Get))
+		season, err := tmdb.GetSeason(showResult.ID, *seasonNumber, tmdb.HttpGetter(http.Get))
 		if err != nil {
 			flag.Usage()
 			log.Fatal(func(int) { os.Exit(4) }, err)
 		}
 		if len(season.PosterPath) == 0 {
-			log.Fatal(func(int) { os.Exit(5) },
-				fmt.Sprintf("%q season %d does not have a poster", *showName, *seasonNumber))
+			log.Fatal(func(int) { os.Exit(5) }, fmt.Sprintf("%q season %d does not have a poster", *showName, *seasonNumber))
 		}
 		url = cfg.Images.SecureBaseUrl + "original" + season.PosterPath
 	}
-	log.Info("poster path = ", url)
+
+	log.Infof("downloading poster %q to %q", url, *out)
 
 	data, err := download(url)
 	if err != nil {
@@ -135,7 +117,7 @@ func main() {
 	defer outf.Close()
 
 	if *width > 0 && *height > 0 {
-		image, _, err := image.Decode(data)
+		image, _, err := img.Decode(data)
 		if nil != err {
 			log.Fatal(os.Exit, err)
 		}
