@@ -47,7 +47,7 @@ func isShow() bool {
 
 func main() {
 	flag.Parse()
-
+	// Make sure that the showName flag is set
 	if len(*showName) == 0 {
 		flag.Usage()
 		log.Fatal(func(int) { os.Exit(1) }, "show must be set")
@@ -76,7 +76,7 @@ func main() {
 	}
 
 	showResult := showQuery.GetClosestResult(*showName)
-
+	// See if out flag is passed in, if not set the default (Season X-SD.jpg or showName-SD.jpg)
 	if len(*out) == 0 {
 		if isShow() {
 			*out = fmt.Sprintf("%s-SD.jpg", showResult.Name)
@@ -84,7 +84,7 @@ func main() {
 			*out = fmt.Sprintf("Season %d-SD.jpg", *seasonNumber)
 		}
 	}
-
+	// Get the URL to download poster
 	var url string
 	if isShow() {
 		if len(showResult.PosterPath) == 0 {
@@ -109,13 +109,13 @@ func main() {
 	if err != nil {
 		log.Fatal(func(int) { os.Exit(6) }, err)
 	}
-
+	// Create the out file
 	outf, err := os.Create(*out)
 	if err != nil {
 		log.Fatal(func(int) { os.Exit(7) }, err)
 	}
 	defer outf.Close()
-
+	// Set the resize width and height if given
 	if *width > 0 && *height > 0 {
 		image, _, err := img.Decode(data)
 		if nil != err {
